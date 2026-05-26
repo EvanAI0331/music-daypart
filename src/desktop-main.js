@@ -15,6 +15,7 @@ const windowIconPath = path.join(root, "assets", "icons", "music-ipod.icns");
 const children = [];
 let runtimeEnv = null;
 let quitting = false;
+let cleanupStarted = false;
 
 app.disableHardwareAcceleration();
 app.commandLine.appendSwitch("disable-gpu");
@@ -59,15 +60,6 @@ function ensureNcmCliConfig(env, secrets) {
   ];
   for (const args of commands) {
     spawnSync(env.MUSIC_NCM_CLI_BIN, args, { env, cwd: root, stdio: "ignore", timeout: 15000 });
-  }
-}
-
-async function isReachable(url) {
-  try {
-    const response = await fetch(url);
-    return response.ok;
-  } catch {
-    return false;
   }
 }
 
@@ -154,6 +146,10 @@ async function createWindow() {
     }
   });
 
+  win.on("close", () => {
+    cleanupRuntime();
+  });
+
   await win.loadURL(`http://127.0.0.1:${frontendPort}`);
 }
 
@@ -194,6 +190,7 @@ function terminatePids(pids, signal) {
 
 function terminatePlayerProcesses() {
   const patterns = [
+    "vendor/@music163/ncm-cli/dist/index\\.js",
     "ncm-cli/dist/index\\.js play",
     "mpv .*\\.config/ncm-cli/mpv\\.sock"
   ];
@@ -213,11 +210,17 @@ function cleanupChildren() {
   killPortListener(frontendPort);
 }
 
+function cleanupRuntime() {
+  if (cleanupStarted) return;
+  cleanupStarted = true;
+  stopPlaybackAndClearQueue();
+  cleanupChildren();
+}
+
 function quitAfterCleanup() {
   if (quitting) return;
   quitting = true;
-  stopPlaybackAndClearQueue();
-  cleanupChildren();
+  cleanupRuntime();
   app.exit(0);
 }
 
@@ -227,5 +230,12 @@ app.on("before-quit", (event) => {
   quitAfterCleanup();
 });
 
+app.on("will-quit", () => {
+  cleanupRuntime();
+});
+
 process.once("SIGINT", quitAfterCleanup);
 process.once("SIGTERM", quitAfterCleanup);
+process.once("exit", () => {
+  cleanupRuntime();
+});
