@@ -2,6 +2,7 @@
 import { app, BrowserWindow, nativeImage } from "electron";
 import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
+import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -13,6 +14,7 @@ const dockIconPath = path.join(root, "assets", "icons", "music-ipod.png");
 const windowIconPath = path.join(root, "assets", "icons", "music-ipod.icns");
 const children = [];
 let runtimeEnv = null;
+let quitting = false;
 
 app.disableHardwareAcceleration();
 app.commandLine.appendSwitch("disable-gpu");
@@ -69,8 +71,39 @@ async function isReachable(url) {
   }
 }
 
+function killPortListener(port) {
+  const result = spawnSync("lsof", ["-tiTCP:" + port, "-sTCP:LISTEN"], { encoding: "utf8" });
+  if (result.status !== 0 || !result.stdout.trim()) return;
+  for (const pid of result.stdout.trim().split(/\s+/).filter(Boolean)) {
+    if (pid !== String(process.pid)) {
+      spawnSync("kill", [pid], { stdio: "ignore" });
+    }
+  }
+}
+
+async function waitForPortClosed(port, timeoutMs = 3000) {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    const closed = await new Promise((resolve) => {
+      const socket = net.createConnection({ host: "127.0.0.1", port: Number(port) });
+      socket.on("connect", () => {
+        socket.destroy();
+        resolve(false);
+      });
+      socket.on("error", () => resolve(true));
+    });
+    if (closed) return;
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
+}
+
+async function releaseOwnedPorts() {
+  killPortListener(backendPort);
+  killPortListener(frontendPort);
+  await Promise.all([waitForPortClosed(backendPort), waitForPortClosed(frontendPort)]);
+}
+
 async function ensureService(script, env, url) {
-  if (await isReachable(url)) return;
   const serviceEnv = { ...ensureRuntime(), ...env };
   const child = spawn(process.execPath, [script], {
     cwd: root,
@@ -100,6 +133,7 @@ async function createWindow() {
   if (process.platform === "darwin" && app.dock && fs.existsSync(dockIconPath)) {
     app.dock.setIcon(nativeImage.createFromPath(dockIconPath));
   }
+  await releaseOwnedPorts();
   await ensureService("src/server.js", {}, `http://127.0.0.1:${backendPort}/api/health`);
   await ensureService("src/frontend-server.js", {}, `http://127.0.0.1:${frontendPort}`);
 
@@ -134,6 +168,64 @@ app.on("window-all-closed", () => {
   app.quit();
 });
 
-app.on("before-quit", () => {
+function stopPlaybackAndClearQueue() {
+  const env = ensureRuntime();
+  const cli = env.MUSIC_NCM_CLI_BIN || "ncm-cli";
+  for (const args of [
+    ["stop", "--output", "json"],
+    ["queue", "clear", "--output", "json"],
+    ["stop", "--output", "json"]
+  ]) {
+    spawnSync(cli, args, { cwd: root, env, stdio: "ignore", timeout: 10000 });
+  }
+  terminatePlayerProcesses();
+}
+
+function matchingPids(pattern) {
+  const result = spawnSync("pgrep", ["-f", pattern], { encoding: "utf8" });
+  if (result.status !== 0 || !result.stdout.trim()) return [];
+  const ownPids = new Set([String(process.pid), String(process.ppid)]);
+  return result.stdout.trim().split(/\s+/).filter((pid) => pid && !ownPids.has(pid));
+}
+
+function terminatePids(pids, signal) {
+  for (const pid of pids) spawnSync("kill", [`-${signal}`, pid], { stdio: "ignore" });
+}
+
+function terminatePlayerProcesses() {
+  const patterns = [
+    "ncm-cli/dist/index\\.js play",
+    "mpv .*\\.config/ncm-cli/mpv\\.sock"
+  ];
+  for (const pattern of patterns) {
+    const pids = matchingPids(pattern);
+    terminatePids(pids, "TERM");
+  }
+  for (const pattern of patterns) {
+    const pids = matchingPids(pattern);
+    terminatePids(pids, "KILL");
+  }
+}
+
+function cleanupChildren() {
   for (const child of children) child.kill("SIGTERM");
+  killPortListener(backendPort);
+  killPortListener(frontendPort);
+}
+
+function quitAfterCleanup() {
+  if (quitting) return;
+  quitting = true;
+  stopPlaybackAndClearQueue();
+  cleanupChildren();
+  app.exit(0);
+}
+
+app.on("before-quit", (event) => {
+  if (quitting) return;
+  event.preventDefault();
+  quitAfterCleanup();
 });
+
+process.once("SIGINT", quitAfterCleanup);
+process.once("SIGTERM", quitAfterCleanup);

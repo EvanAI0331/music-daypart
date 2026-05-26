@@ -90,8 +90,8 @@ export async function runDaemon(config) {
 }
 
 export async function stop(config) {
-  await runCli(config.ncmCliBin, ["queue", "clear", "--output", "json"], { timeoutMs: 10000 });
   await runCli(config.ncmCliBin, ["stop", "--output", "json"], { timeoutMs: 10000 });
+  await runCli(config.ncmCliBin, ["queue", "clear", "--output", "json"], { timeoutMs: 10000 });
   return { status: "stopped" };
 }
 
