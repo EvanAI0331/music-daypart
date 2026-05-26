@@ -1,0 +1,55 @@
+{
+  "timezone": "Asia/Shanghai",
+  "llm": {
+    "provider": "openai-compatible",
+    "baseUrl": "https://coding.dashscope.aliyuncs.com/v1",
+    "apiKeyEnv": "DASHSCOPE_API_KEY",
+    "model": "qwen3-max-2026-01-23"
+  },
+  "ncmCliBin": "ncm-cli",
+  "defaultLimit": 8,
+  "playback": {
+    "stopBeforePlay": true,
+    "volume": 45
+  },
+  "slots": [
+    {
+      "id": "morning",
+      "enabled": true,
+      "start": "10:30",
+      "end": "13:30",
+      "intent": "唤醒",
+      "keywords": [
+        "纯音乐、女声、轻松"
+      ]
+    },
+    {
+      "id": "work",
+      "enabled": true,
+      "start": "13:30",
+      "end": "17:30",
+      "intent": "咖啡",
+      "keywords": [
+        "悠闲",
+        "最新",
+        "热门"
+      ]
+    },
+    {
+      "id": "evening",
+      "enabled": true,
+      "start": "17:30",
+      "end": "22:30",
+      "intent": "放松、旋律感、晚间恢复",
+      "keywords": []
+    },
+    {
+      "id": "late",
+      "enabled": true,
+      "start": "22:30",
+      "end": "07:30",
+      "intent": "深夜、安静、低 BPM、不要强节奏",
+      "keywords": []
+    }
+  ]
+}

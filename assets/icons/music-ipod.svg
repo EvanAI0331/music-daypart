@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="body" x1="180" x2="850" y1="80" y2="930" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f8fafc"/>
+      <stop offset=".55" stop-color="#cfd6df"/>
+      <stop offset="1" stop-color="#9aa4b2"/>
+    </linearGradient>
+    <linearGradient id="screen" x1="260" x2="780" y1="150" y2="470" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#243442"/>
+      <stop offset="1" stop-color="#141d26"/>
+    </linearGradient>
+    <linearGradient id="red" x1="370" x2="690" y1="205" y2="510" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ff6868"/>
+      <stop offset="1" stop-color="#d93030"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="38" stdDeviation="34" flood-color="#263142" flood-opacity=".35"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" rx="228" fill="#d8dee7"/>
+  <rect x="162" y="78" width="700" height="868" rx="118" fill="url(#body)" filter="url(#shadow)"/>
+  <rect x="230" y="148" width="564" height="362" rx="42" fill="#1d232b"/>
+  <rect x="260" y="178" width="504" height="302" rx="26" fill="url(#screen)"/>
+  <circle cx="380" cy="324" r="78" fill="url(#red)"/>
+  <circle cx="380" cy="324" r="48" fill="#151b22"/>
+  <circle cx="380" cy="324" r="13" fill="#f8fafc"/>
+  <path d="M486 277h156c20 0 36 16 36 36s-16 36-36 36H486c-20 0-36-16-36-36s16-36 36-36Z" fill="#f8fafc" opacity=".94"/>
+  <path d="M486 377h108c17 0 30 13 30 30s-13 30-30 30H486c-17 0-30-13-30-30s13-30 30-30Z" fill="#93a4b4" opacity=".9"/>
+  <circle cx="512" cy="706" r="178" fill="#f9fafb"/>
+  <circle cx="512" cy="706" r="78" fill="#cdd5df"/>
+  <circle cx="512" cy="706" r="54" fill="url(#red)"/>
+  <text x="512" y="342" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="82" font-weight="700" fill="#ffffff">♪</text>
+  <text x="512" y="588" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="700" fill="#8b95a3">MENU</text>
+  <text x="512" y="849" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="700" fill="#8b95a3">PLAY</text>
+</svg>

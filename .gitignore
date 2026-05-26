@@ -1,0 +1,21 @@
+.DS_Store
+.playwright-mcp/
+node_modules/
+release/
+vendor/
+bin/
+user-data/
+启动日志.txt
+
+# Local secrets and generated runtime config
+config/runtime-secrets.json
+.env
+.env.*
+!.env.example
+
+# Portable/exported builds
+*.zip
+*.dmg
+*.pkg
+*.app/
+Music-Daypart-Terminal/

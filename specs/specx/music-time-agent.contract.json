@@ -1,0 +1,120 @@
+{
+  "contract_id": "music-time-agent-v0-1",
+  "schema_version": "0.1",
+  "objective": "Run an LLM-driven daily time-slot workflow that searches NetEase Cloud Music and plays a selected song through the user's authenticated ncm-cli.",
+  "domain": "music_playback_automation",
+  "task_type": "llm_agent_workflow",
+  "required_agents": [
+    {
+      "agent_id": "music-time-agent",
+      "role_spec": "specs/music-time-agent.role.spec.md",
+      "execution_spec": "specs/music-time-agent.execution.spec.md",
+      "output_spec": "specs/music-time-agent.output.spec.md"
+    }
+  ],
+  "required_tools": [
+    {
+      "tool_id": "qwen_openai_compatible_chat_completions",
+      "purpose": "Generate and revise the time-slot music search plan from slot intent direction and search failure history through DashScope OpenAI-compatible API."
+    },
+    {
+      "tool_id": "ncm-cli",
+      "purpose": "Check login, search NetEase Cloud Music, control playback, and report player state."
+    },
+    {
+      "tool_id": "mpv",
+      "purpose": "Local audio playback backend used by ncm-cli."
+    }
+  ],
+  "required_evidence": [
+    {
+      "evidence_id": "preflight_result",
+      "description": "doctor output proving login, search command availability, and player state."
+    },
+    {
+      "evidence_id": "llm_plan",
+      "description": "Structured JSON plan produced by the LLM for the active time slot, including search_strategy."
+    },
+    {
+      "evidence_id": "llm_search_retry_history",
+      "description": "Failed keywords and exact search errors fed back into the LLM for strategy revision."
+    },
+    {
+      "evidence_id": "ncm_search_result",
+      "description": "Search result containing encrypted and original song IDs."
+    },
+    {
+      "evidence_id": "ncm_play_result",
+      "description": "ncm-cli play command success output."
+    },
+    {
+      "evidence_id": "ncm_queue_result",
+      "description": "All playable search results are shuffled; the first song is played and the remaining songs are appended with ncm-cli queue add."
+    },
+    {
+      "evidence_id": "queue_refill_monitor",
+      "description": "When playback stops before the next scheduled time without a manual stop, the workflow refreshes search terms and builds a new shuffled queue."
+    }
+  ],
+  "gates": [
+    {
+      "gate_id": "preflight_gate",
+      "condition": "ncm-cli exists, login check succeeds, search command exists, and player state can be read.",
+      "on_pass": "Continue to LLM planning.",
+      "on_failure": "Stop with failed preflight and report exact failing check."
+    },
+    {
+      "gate_id": "llm_plan_gate",
+      "condition": "LLM returns valid JSON matching the search plan schema.",
+      "on_pass": "Continue to NetEase Cloud Music search.",
+      "on_failure": "Stop with failed LLM planning."
+    },
+    {
+      "gate_id": "search_gate",
+      "condition": "Search returns at least one song with encryptedId and originalId.",
+      "on_pass": "Continue to playback.",
+      "on_failure": "Feed the failed keyword and search error back into the LLM and retry with a revised strategy unless a non-search blocker occurs."
+    },
+    {
+      "gate_id": "playback_gate",
+      "condition": "ncm-cli play exits successfully for the first shuffled song and queue add succeeds for remaining shuffled songs.",
+      "on_pass": "Emit status played with queue evidence.",
+      "on_failure": "Stop with failed playback."
+    }
+  ],
+  "expected_artifacts": [
+    "package.json",
+    "config/music-workflow.json",
+    "src/index.js",
+    "src/workflow.js",
+    "src/llmAgent.js",
+    "src/ncmCli.js",
+    "specs/music-time-agent.role.spec.md",
+    "specs/music-time-agent.execution.spec.md",
+    "specs/music-time-agent.output.spec.md",
+    "specs/music-time-agent.search.skill.md"
+  ],
+  "failure_semantics": {
+    "no_fake_success": true,
+    "no_silent_fallback": true,
+    "explicit_failure_state": true
+  },
+  "execution_constraints": {
+    "no_fake_success": true,
+    "no_silent_fallback": true,
+    "no_hardcoded_fallback": true,
+    "agent_core_must_be_llm_driven": true,
+    "playback_must_use_ncm_cli": true
+  },
+  "human_approval": {
+    "required": false,
+    "before": []
+  },
+  "verification_policy": {
+    "required_checks": [
+      "specx_contract_compile",
+      "node_syntax_check",
+      "doctor_preflight"
+    ]
+  }
+}

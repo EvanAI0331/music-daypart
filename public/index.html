@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>时段音乐播放器</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main class="ipod">
+    <section class="screen">
+      <div class="screen-top">
+        <span class="brand-dot"></span>
+        <span>Music Daypart</span>
+        <span id="ready-pill" class="pill">检查中</span>
+      </div>
+
+      <section class="now-playing">
+        <div class="album-art">
+          <div class="album-disc">♪</div>
+        </div>
+        <div class="track-meta">
+          <div class="eyebrow">网易云音乐 · Qwen</div>
+          <h1>时段音乐播放器</h1>
+          <p>自动按时段关键词选歌</p>
+        </div>
+      </section>
+
+      <div class="status-strip">
+        <span>时段 <strong id="slot">-</strong></span>
+        <span>当前 <strong id="player">-</strong></span>
+        <span>下一首 <strong id="daemon">-</strong></span>
+      </div>
+
+      <section class="volume-card">
+        <div>
+          <strong>音量</strong>
+          <small>读取 mpv 实际音量</small>
+        </div>
+        <div class="volume-row">
+          <input id="volume-slider" type="range" min="0" max="100" step="1" value="45" />
+          <input id="volume-number" type="number" min="0" max="100" step="1" value="45" />
+        </div>
+      </section>
+
+      <nav class="screen-tabs" aria-label="设置切换">
+        <button class="active" data-panel-tab="schedule">时段</button>
+        <button data-panel-tab="audio">音频</button>
+        <button data-panel-tab="status">状态</button>
+      </nav>
+
+      <section class="screen-scroll">
+        <section class="panel schedule-panel active" data-panel="schedule">
+          <h2>播放时段</h2>
+          <p class="section-note">搜索关键词用于网易云搜索；氛围只影响 LLM 选歌方向。</p>
+          <div class="slots-list" id="schedule"></div>
+        </section>
+
+        <section class="panel audio-panel" data-panel="audio">
+          <h2>音频输出</h2>
+          <div id="audio"></div>
+        </section>
+
+        <section class="panel" data-panel="status">
+          <h2>状态检查</h2>
+          <p class="section-note">新用户点击底部“登录”，用普通网易云音乐账号授权。</p>
+          <div id="login-result" class="login-result"></div>
+          <div id="checks" class="status-grid"></div>
+        </section>
+      </section>
+
+      <section class="screen-actions" aria-label="播放器操作">
+        <button class="primary" data-action="run-once">播放</button>
+        <button data-action="pause">暂停</button>
+        <button id="save-config">保存</button>
+        <button id="login-action" data-action="login">登录</button>
+        <button class="stop" data-action="stop">停止</button>
+      </section>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
