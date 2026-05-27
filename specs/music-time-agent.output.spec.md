@@ -7,6 +7,7 @@ Successful output:
   "time": "local ISO timestamp",
   "slot": "slot id",
   "plan": {
+    "user_profile": "LLM inferred current-slot listener profile",
     "keyword": "LLM generated keyword",
     "alternate_keywords": ["LLM generated backup keyword"],
     "search_strategy": "short description of how the LLM shaped the query",

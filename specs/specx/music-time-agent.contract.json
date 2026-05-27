@@ -15,7 +15,7 @@
   "required_tools": [
     {
       "tool_id": "qwen_openai_compatible_chat_completions",
-      "purpose": "Generate and revise the time-slot music search plan from slot intent direction and search failure history through DashScope OpenAI-compatible API."
+      "purpose": "Generate and revise the time-slot music search plan from slot intent, positive keywords, negative keywords, inferred listener profile, and search failure history through DashScope OpenAI-compatible API."
     },
     {
       "tool_id": "ncm-cli",
@@ -33,7 +33,7 @@
     },
     {
       "evidence_id": "llm_plan",
-      "description": "Structured JSON plan produced by the LLM for the active time slot, including search_strategy."
+      "description": "Structured JSON plan produced by the LLM for the active time slot, including user_profile, search_strategy, and avoid exclusions."
     },
     {
       "evidence_id": "llm_search_retry_history",
@@ -65,7 +65,7 @@
     },
     {
       "gate_id": "llm_plan_gate",
-      "condition": "LLM returns valid JSON matching the search plan schema.",
+      "condition": "LLM returns valid JSON matching the search plan schema; plan includes user_profile; keyword and alternate_keywords do not contain configured negative keywords and are not direct copies of positive keywords.",
       "on_pass": "Continue to NetEase Cloud Music search.",
       "on_failure": "Stop with failed LLM planning."
     },

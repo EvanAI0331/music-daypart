@@ -4,7 +4,10 @@ Execution flow:
 1. Load `config/music-workflow.json`.
 2. Run preflight checks for Node, `ncm-cli`, login, search support, and player state.
 3. Resolve the active time slot from configured timezone and slot windows.
-4. Ask the LLM for a JSON search plan containing `keyword`, `alternate_keywords`, `search_strategy`, `reason`, `preferred_language`, and `avoid`.
+4. Ask the LLM for a JSON search plan containing `user_profile`, `keyword`, `alternate_keywords`, `search_strategy`, `reason`, `preferred_language`, and `avoid`.
+   - `user_profile` must infer the current slot listener profile from slot keywords, negative keywords, time, and intent.
+   - Positive keywords are evidence for profile and strategy, not literal search terms to reuse.
+   - Negative keywords are hard exclusions and must appear in `avoid`, never in `keyword` or `alternate_keywords`.
 5. Execute `ncm-cli search song --keyword <keyword> --output json`.
 6. Collect all search results with both encrypted and original song IDs.
 7. If the search returns no playable song ID pair:
@@ -26,3 +29,5 @@ Failure semantics:
 - Repeating the same failed keyword without a strategy change is invalid.
 - Random playback means the playable search result batch is shuffled before playback and queue insertion.
 - Manual stop suppresses queue-refill until the next scheduled playback time or the next explicit manual play.
+- Directly copying a user positive keyword as `keyword` or `alternate_keywords` is invalid; the LLM must transform preference evidence into a profile-derived NetEase search phrase.
+- Returning any negative keyword inside `keyword` or `alternate_keywords` is invalid.

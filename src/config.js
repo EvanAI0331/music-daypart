@@ -10,7 +10,7 @@ export function loadConfig(configPath = process.env.MUSIC_WORKFLOW_CONFIG) {
   const resolved = configPath
     ? path.resolve(configPath)
     : path.join(projectRoot(), "config", "music-workflow.json");
-  const parsed = JSON.parse(fs.readFileSync(resolved, "utf8"));
+  const parsed = normalizeConfig(JSON.parse(fs.readFileSync(resolved, "utf8")));
   if (process.env.MUSIC_NCM_CLI_BIN) {
     parsed.ncmCliBin = process.env.MUSIC_NCM_CLI_BIN;
   }
@@ -26,6 +26,19 @@ export function saveConfig(config, configPath = process.env.MUSIC_WORKFLOW_CONFI
   validateConfig(next, target);
   fs.writeFileSync(target, `${JSON.stringify(next, null, 2)}\n`, "utf8");
   return loadConfig(target);
+}
+
+function normalizeConfig(config) {
+  return {
+    ...config,
+    slots: Array.isArray(config.slots)
+      ? config.slots.map((slot) => ({
+        ...slot,
+        keywords: Array.isArray(slot.keywords) ? slot.keywords : [],
+        negativeKeywords: Array.isArray(slot.negativeKeywords) ? slot.negativeKeywords : []
+      }))
+      : config.slots
+  };
 }
 
 function validateConfig(config, source) {
@@ -49,6 +62,9 @@ function validateConfig(config, source) {
     }
     if (slot.keywords != null && !Array.isArray(slot.keywords)) {
       throw new Error(`slot ${slot.id} keywords 必须是数组`);
+    }
+    if (slot.negativeKeywords != null && !Array.isArray(slot.negativeKeywords)) {
+      throw new Error(`slot ${slot.id} negativeKeywords 必须是数组`);
     }
   }
 }

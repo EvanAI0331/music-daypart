@@ -21,7 +21,8 @@
       "intent": "唤醒",
       "keywords": [
         "纯音乐、女声、轻松"
-      ]
+      ],
+      "negativeKeywords": []
     },
     {
       "id": "work",
@@ -33,7 +34,8 @@
         "悠闲",
         "最新",
         "热门"
-      ]
+      ],
+      "negativeKeywords": []
     },
     {
       "id": "evening",
@@ -41,7 +43,8 @@
       "start": "17:30",
       "end": "22:30",
       "intent": "放松、旋律感、晚间恢复",
-      "keywords": []
+      "keywords": [],
+      "negativeKeywords": []
     },
     {
       "id": "late",
@@ -49,7 +52,8 @@
       "start": "22:30",
       "end": "07:30",
       "intent": "深夜、安静、低 BPM、不要强节奏",
-      "keywords": []
+      "keywords": [],
+      "negativeKeywords": []
     }
   ]
 }

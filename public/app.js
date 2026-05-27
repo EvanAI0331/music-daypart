@@ -111,7 +111,8 @@ function renderSchedule(data) {
         <label><span>结束</span><input data-slot="${index}" data-field="end" value="${escapeAttr(slot.end)}" aria-label="${escapeAttr(slot.id)} 结束时间"></label>
       </div>
       <label class="slot-field"><span>氛围</span><input data-slot="${index}" data-field="intent" value="${escapeAttr(slot.intent)}" aria-label="${escapeAttr(slot.id)} 氛围" placeholder="只影响选歌方向，不直接搜索"></label>
-      <label class="slot-field"><span>搜索关键词</span><textarea class="slot-keywords" data-slot="${index}" data-field="keywords" placeholder="每行一个，或用逗号/顿号分隔">${escapeText((slot.keywords || []).join('\n'))}</textarea></label>
+      <label class="slot-field"><span>偏好关键词</span><textarea class="slot-keywords" data-slot="${index}" data-field="keywords" placeholder="用于画像和策略，不会直接照抄搜索">${escapeText((slot.keywords || []).join('\n'))}</textarea></label>
+      <label class="slot-field"><span>反向关键词</span><textarea class="slot-keywords negative" data-slot="${index}" data-field="negativeKeywords" placeholder="排除或禁止的风格、歌手、场景；每行一个">${escapeText((slot.negativeKeywords || []).join('\n'))}</textarea></label>
     </article>
   `).join("");
   scheduleRendered = true;
@@ -134,6 +135,8 @@ function bindConfigInputs() {
         slot.enabled = input.checked;
       } else if (input.dataset.field === "keywords") {
         slot.keywords = input.value.split(/[\n,，、]/).map((item) => item.trim()).filter(Boolean);
+      } else if (input.dataset.field === "negativeKeywords") {
+        slot.negativeKeywords = input.value.split(/[\n,，、]/).map((item) => item.trim()).filter(Boolean);
       } else {
         slot[input.dataset.field] = input.value;
       }
