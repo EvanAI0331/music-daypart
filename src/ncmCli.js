@@ -39,6 +39,32 @@ export async function getMpvVolume(config = {}) {
   return Math.round(response.data);
 }
 
+export async function getMpvPlaybackStatus(config = {}) {
+  const socketPath = config.playback?.mpvSocketPath
+    || process.env.NCM_MPV_SOCKET
+    || path.join(os.homedir(), ".config", "ncm-cli", "mpv.sock");
+  const [idle, pathValue, timePosition] = await Promise.all([
+    mpvProperty(socketPath, "idle-active"),
+    mpvProperty(socketPath, "path"),
+    mpvProperty(socketPath, "time-pos")
+  ]);
+  return {
+    available: true,
+    idle: idle.data === true,
+    path: typeof pathValue.data === "string" ? pathValue.data : "",
+    timePosition: typeof timePosition.data === "number" ? timePosition.data : null,
+    active: idle.data === false && typeof pathValue.data === "string" && typeof timePosition.data === "number"
+  };
+}
+
+async function mpvProperty(socketPath, property) {
+  try {
+    return await mpvCommand(socketPath, ["get_property", property]);
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
 async function mpvCommand(socketPath, command) {
   return await new Promise((resolve, reject) => {
     const socket = net.createConnection(socketPath);

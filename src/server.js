@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import http from "node:http";
 import { loadConfig, saveConfig } from "./config.js";
-import { doctor, extractJson, getMpvVolume, queueState, runCli } from "./ncmCli.js";
+import { doctor, extractJson, getMpvPlaybackStatus, getMpvVolume, queueState, runCli } from "./ncmCli.js";
 import { currentSlot, millisecondsUntilNextSchedule, rawCurrentSlot } from "./timeSlots.js";
 import { pause, runOnce, state, stop } from "./workflow.js";
 
@@ -12,6 +12,7 @@ let playbackNext = null;
 let queueMonitor = null;
 let refillRunning = false;
 let manualStopUntilNextSchedule = false;
+let playbackStuckChecks = 0;
 
 function log(event, detail = {}) {
   const entry = { ts: new Date().toISOString(), event, detail };
@@ -71,6 +72,7 @@ async function health() {
   const nowPlaying = playerState.data?.state?.title || "";
   const nextTrack = nextQueueTrack(queue);
   const actualVolume = await getMpvVolume(config).catch((error) => null);
+  const mpv = await getMpvPlaybackStatus(config).catch((error) => ({ available: false, error: error.message }));
   return {
     ok: healthResult.ok,
     checks: healthResult.checks,
@@ -107,6 +109,7 @@ async function health() {
       next: playbackNext
     },
     playerState,
+    mpv,
     nowPlaying,
     nextTrack,
     queue,
@@ -175,8 +178,14 @@ function startQueueMonitor() {
     const next = millisecondsUntilNextSchedule(config);
     if (next.delayMs <= 60_000) return;
     const playerState = await state(config).catch(() => null);
-    if (playerState?.data?.state?.status !== "stopped") return;
-    await queueState(config).catch(() => null);
+    const status = playerState?.data?.state?.status;
+    if (status === "playing") {
+      const recovered = await recoverStuckPlayback(config, playerState);
+      if (!recovered) return;
+    } else if (status !== "stopped") {
+      playbackStuckChecks = 0;
+      return;
+    }
     refillRunning = true;
     try {
       const result = await runOnce(loadConfig());
@@ -187,6 +196,29 @@ function startQueueMonitor() {
       refillRunning = false;
     }
   }, 30_000);
+}
+
+async function recoverStuckPlayback(config, playerState) {
+  const mpv = await getMpvPlaybackStatus(config).catch((error) => ({ available: false, error: error.message }));
+  if (mpv.active) {
+    playbackStuckChecks = 0;
+    return false;
+  }
+  playbackStuckChecks += 1;
+  log("playback.stuck_check", {
+    count: playbackStuckChecks,
+    title: playerState?.data?.state?.title || "",
+    mpv
+  });
+  if (playbackStuckChecks < 2) return false;
+  playbackStuckChecks = 0;
+  const queue = await queueState(config).catch(() => null);
+  if (Array.isArray(queue?.queue) && queue.queue.length > 1) {
+    const result = await runCli(config.ncmCliBin, ["next", "--output", "json"], { timeoutMs: 15000 });
+    log("playback.recovered_next", { stdout: result.stdout.trim() });
+    return false;
+  }
+  return true;
 }
 
 async function runAction(action) {
