@@ -13,6 +13,7 @@ let queueMonitor = null;
 let refillRunning = false;
 let manualStopUntilNextSchedule = false;
 let playbackStuckChecks = 0;
+let playbackSample = null;
 
 function log(event, detail = {}) {
   const entry = { ts: new Date().toISOString(), event, detail };
@@ -199,6 +200,23 @@ function startQueueMonitor() {
 }
 
 async function recoverStuckPlayback(config, playerState) {
+  const current = playbackSnapshot(playerState);
+  if (!current) {
+    playbackStuckChecks = 0;
+    playbackSample = null;
+    return false;
+  }
+  if (!playbackSample || playbackSample.trackKey !== current.trackKey) {
+    playbackStuckChecks = 0;
+    playbackSample = current;
+    return false;
+  }
+  if (current.position > playbackSample.position + 2) {
+    playbackStuckChecks = 0;
+    playbackSample = current;
+    return false;
+  }
+  playbackSample = current;
   const mpv = await getMpvPlaybackStatus(config).catch((error) => ({ available: false, error: error.message }));
   if (mpv.active) {
     playbackStuckChecks = 0;
@@ -207,7 +225,8 @@ async function recoverStuckPlayback(config, playerState) {
   playbackStuckChecks += 1;
   log("playback.stuck_check", {
     count: playbackStuckChecks,
-    title: playerState?.data?.state?.title || "",
+    title: current.title,
+    position: current.position,
     mpv
   });
   if (playbackStuckChecks < 2) return false;
@@ -219,6 +238,19 @@ async function recoverStuckPlayback(config, playerState) {
     return false;
   }
   return true;
+}
+
+function playbackSnapshot(playerState) {
+  const stateData = playerState?.data?.state;
+  const title = typeof stateData?.title === "string" ? stateData.title : "";
+  const position = typeof stateData?.position === "number" ? stateData.position : null;
+  const index = Number.isInteger(stateData?.currentIndex) ? stateData.currentIndex : null;
+  if (!title || position == null) return null;
+  return {
+    trackKey: `${index ?? "?"}:${title}`,
+    title,
+    position
+  };
 }
 
 async function runAction(action) {
