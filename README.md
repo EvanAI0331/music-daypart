@@ -9,7 +9,7 @@ Music Daypart uses a Qwen-compatible LLM to turn each time slot's intent and use
 - Time-slot music automation with per-slot enable switches, time windows, intent, and keywords.
 - LLM-driven search planning and retry strategy. Failed search terms are fed back to the model so it can revise the strategy.
 - NetEase Cloud Music playback through `ncm-cli`.
-- Desktop-style local player UI in Chinese.
+- Browser-based local player UI in Chinese.
 - Queue behavior: shuffle all playable search results, play one, enqueue the rest, and refill when finished.
 - Runtime controls for play, pause, stop, volume, login, and output device selection.
 - Spec files for the agent role, execution, output, and search skill.
@@ -54,13 +54,19 @@ ncm-cli login
 
 ## Run
 
-Desktop app:
+Web app:
 
 ```bash
-npm run desktop
+npm start
 ```
 
-Web backend and frontend:
+This starts the backend and frontend, then opens:
+
+```text
+http://127.0.0.1:8788
+```
+
+Development mode without opening a browser:
 
 ```bash
 npm run dev
@@ -95,19 +101,15 @@ Example: `13:30-17:30` runs at `13:30`, `14:30`, `15:30`, and `16:30`.
 
 If the queue finishes before the next scheduled target and the user did not manually stop playback, the app asks the LLM for a fresh search plan and builds a new shuffled queue.
 
-## Packaging
+## Portable Web Package
 
-The macOS packaging script expects local `ncm-cli` and `mpv` locations and writes secrets only into local ignored build artifacts.
+For another Mac, copy the project folder with its `bin/`, `config/`, `public/`, `scripts/`, `src/`, `vendor/`, `node_modules/`, `package.json`, and `package-lock.json`. Then run:
 
 ```bash
-DASHSCOPE_API_KEY="..." \
-MUSIC_NCM_APP_ID="..." \
-MUSIC_NCM_PRIVATE_KEY="..." \
-MUSIC_NCM_APP_SECRET="..." \
-npm run package:mac
+node scripts/portable-start.mjs
 ```
 
-Do not publish packaged artifacts containing your API keys or NetEase Open Platform private key.
+The portable startup script opens the browser UI and keeps services running while the terminal window stays open.
 
 ## Security
 

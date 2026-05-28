@@ -10,7 +10,8 @@
   "defaultLimit": 8,
   "playback": {
     "stopBeforePlay": true,
-    "volume": 45
+    "volume": 50,
+    "outputDeviceName": "Music Project Speakers"
   },
   "slots": [
     {
@@ -22,7 +23,9 @@
       "keywords": [
         "纯音乐、女声、轻松"
       ],
-      "negativeKeywords": []
+      "negativeKeywords": [
+        "快节奏"
+      ]
     },
     {
       "id": "work",

@@ -3,32 +3,28 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "src/desktop-main.js",
+  "main": "src/web-main.js",
   "productName": "Music Daypart",
   "description": "LLM-driven time-slot workflow for searching and playing NetEase Cloud Music through ncm-cli.",
   "bin": {
     "music-daypart": "src/index.js"
   },
   "scripts": {
+    "start": "node src/web-main.js",
+    "web": "node src/web-main.js",
     "backend": "node src/server.js",
     "frontend": "node src/frontend-server.js",
-    "desktop": "electron src/desktop-main.js",
-    "dev": "node src/dev.js",
+    "dev": "node src/web-main.js --no-open",
     "doctor": "node src/index.js doctor",
     "run-once": "node src/index.js run-once",
     "daemon": "node src/index.js daemon",
     "pause": "node src/index.js pause",
     "stop": "node src/index.js stop",
     "state": "node src/index.js state",
-    "audio:setup": "blueutil --connect 4c-c6-4c-39-1b-d8; blueutil --connect 4c-c6-4c-39-1c-d9; swift scripts/create_music_output.swift; SwitchAudioSource -s 'Music Project Speakers' -t output",
-    "package:mac": "node scripts/package_macos_app.js",
+    "audio:setup": "blueutil --connect 4c-c6-4c-39-1b-d8; blueutil --connect 4c-c6-4c-39-1c-d9; swift scripts/create_music_output.swift; SwitchAudioSource -s 'Music Project Speakers' -t output; node scripts/configure_mpv_stereo_pair.mjs",
     "validate:spec": "python3 /Users/xin/Desktop/specx-codex-plugin/scripts/specx_cli.py validate specs/specx/music-time-agent.contract.json && python3 /Users/xin/Desktop/specx-codex-plugin/scripts/specx_cli.py compile specs/specx/music-time-agent.contract.json"
   },
   "engines": {
     "node": ">=18"
-  },
-  "devDependencies": {
-    "@electron/packager": "^20.0.0",
-    "electron": "^42.2.0"
   }
 }

@@ -5,7 +5,6 @@ import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const electronNode = path.join(packageRoot, "node_modules", "electron", "dist", "Electron.app", "Contents", "MacOS", "Electron");
 const backendPort = process.env.MUSIC_BACKEND_PORT || "8787";
 const frontendPort = process.env.MUSIC_FRONTEND_PORT || "8788";
 const userDataDir = path.join(packageRoot, "user-data");
@@ -40,7 +39,6 @@ function runtimeEnv() {
   return {
     ...process.env,
     PATH: `${path.join(packageRoot, "bin")}${path.delimiter}${process.env.PATH || ""}`,
-    ELECTRON_RUN_AS_NODE: "1",
     MUSIC_WORKFLOW_CONFIG: configPath,
     MUSIC_BACKEND_PORT: backendPort,
     MUSIC_FRONTEND_PORT: frontendPort,
@@ -76,7 +74,7 @@ async function waitFor(url, timeoutMs = 15000) {
 }
 
 function start(script, env) {
-  const child = spawn(electronNode, [script], {
+  const child = spawn(process.execPath, [script], {
     cwd: packageRoot,
     env,
     stdio: "inherit"
@@ -105,7 +103,6 @@ try {
   fs.writeFileSync(logPath, "", "utf8");
   logLine(`包目录: ${packageRoot}`);
   logLine(`系统架构: ${process.arch}`);
-  if (!fs.existsSync(electronNode)) throw new Error(`缺少 Electron Node: ${electronNode}`);
   if (!fs.existsSync(ncmCli)) throw new Error(`缺少 ncm-cli: ${ncmCli}`);
   ensureConfig();
   const env = runtimeEnv();
