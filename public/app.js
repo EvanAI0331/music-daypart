@@ -123,7 +123,7 @@ function renderSchedule(data) {
 async function loadConfig() {
   const payload = await fetchJson("/api/config");
   editableConfig = payload.config;
-  const volume = Number(editableConfig.playback?.volume ?? 45);
+  const volume = Number(editableConfig.playback?.volume ?? 50);
   syncVolumeControls(volume, true);
 }
 
@@ -386,6 +386,6 @@ function escapeText(value) {
 
 function normalizedVolume(value) {
   const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return 45;
-  return Math.max(0, Math.min(100, Math.round(parsed)));
+  if (!Number.isFinite(parsed)) return 50;
+  return Math.max(0, Math.min(60, Math.round(parsed)));
 }

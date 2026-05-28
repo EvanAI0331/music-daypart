@@ -6,6 +6,7 @@ vendor/
 bin/
 user-data/
 启动日志.txt
+logs/
 
 # Local secrets and generated runtime config
 config/runtime-secrets.json

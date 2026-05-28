@@ -51,6 +51,12 @@ function validateConfig(config, source) {
   if (!Array.isArray(config.slots) || config.slots.length === 0) {
     throw new Error(`配置 slots 必须是非空数组: ${source}`);
   }
+  if (config.playback?.volume != null) {
+    const volume = config.playback.volume;
+    if (!Number.isInteger(volume) || volume < 0 || volume > 60) {
+      throw new Error(`playback.volume 必须是 0-60 的整数: ${source}`);
+    }
+  }
   for (const slot of config.slots) {
     for (const key of ["id", "start", "end", "intent"]) {
       if (!(key in slot)) throw new Error(`slot ${slot.id || "(unknown)"} 缺少 ${key}`);

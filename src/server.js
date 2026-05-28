@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import http from "node:http";
+import { spawnSync } from "node:child_process";
 import { loadConfig, saveConfig } from "./config.js";
-import { doctor, extractJson, getMpvPlaybackStatus, getMpvVolume, queueState, runCli } from "./ncmCli.js";
+import { doctor, extractJson, getMpvPlaybackStatus, getMpvVolume, queueState, runCli, setMpvAudioDevice, setMpvVolumePolicy } from "./ncmCli.js";
 import { currentSlot, millisecondsUntilNextSchedule, rawCurrentSlot } from "./timeSlots.js";
 import { pause, runOnce, state, stop } from "./workflow.js";
 
@@ -14,6 +15,7 @@ let refillRunning = false;
 let manualStopUntilNextSchedule = false;
 let playbackStuckChecks = 0;
 let playbackSample = null;
+let cleanupStarted = false;
 
 function log(event, detail = {}) {
   const entry = { ts: new Date().toISOString(), event, detail };
@@ -143,6 +145,22 @@ async function currentOutputDevice() {
   }
 }
 
+async function listMpvOutputDevices() {
+  const result = await runCli("mpv", ["--audio-device=help", "--no-config"], { timeoutMs: 10000 });
+  return result.stdout
+    .split("\n")
+    .map((line) => line.match(/^\s+'([^']+)'\s+\((.+)\)\s*$/))
+    .filter(Boolean)
+    .map((match) => ({ id: match[1], name: match[2] }));
+}
+
+async function mpvDeviceForOutput(name) {
+  const devices = await listMpvOutputDevices();
+  const avfoundation = devices.find((device) => device.name === name && device.id.startsWith("avfoundation/"));
+  const coreaudio = devices.find((device) => device.name === name && device.id.startsWith("coreaudio/"));
+  return avfoundation?.id || coreaudio?.id || "auto";
+}
+
 function scheduleAutomaticPlayback(reason = "schedule") {
   if (playbackTimer) clearTimeout(playbackTimer);
   playbackTimer = null;
@@ -181,6 +199,9 @@ function startQueueMonitor() {
     const playerState = await state(config).catch(() => null);
     const status = playerState?.data?.state?.status;
     if (status === "playing") {
+      await setMpvVolumePolicy(config, config.playback?.volume ?? 50).catch((error) => {
+        log("volume.policy_failed", { message: error.message });
+      });
       const recovered = await recoverStuckPlayback(config, playerState);
       if (!recovered) return;
     } else if (status !== "stopped") {
@@ -289,21 +310,22 @@ async function runAction(action) {
 async function setVolume(level) {
   const config = loadConfig();
   const volume = Number(level);
-  if (!Number.isInteger(volume) || volume < 0 || volume > 100) {
-    throw new Error(`音量必须是 0-100 的整数: ${level}`);
+  if (!Number.isInteger(volume) || volume < 0 || volume > 60) {
+    throw new Error(`音量必须是 0-60 的整数: ${level}`);
   }
   const result = await runCli(config.ncmCliBin, ["volume", String(volume), "--output", "json"], { timeoutMs: 10000 });
+  const policy = await setMpvVolumePolicy(config, volume).catch((error) => ({ applied: false, error: error.message }));
   const actualVolume = await getMpvVolume(config).catch(() => null);
   const nextConfig = {
     ...config,
     playback: {
       ...(config.playback || {}),
-      volume: actualVolume ?? volume
+      volume
     }
   };
   const saved = saveConfig(nextConfig, config.__path);
-  log("volume.set", { volume });
-  return { status: "volume_set", requestedVolume: volume, volume: saved.playback.volume, actualVolume, stdout: result.stdout.trim() };
+  log("volume.set", { volume, actualVolume, policy });
+  return { status: "volume_set", requestedVolume: volume, volume: saved.playback.volume, actualVolume, policy, stdout: result.stdout.trim() };
 }
 
 async function setOutputDevice(name) {
@@ -317,6 +339,10 @@ async function setOutputDevice(name) {
     throw new Error(`未找到输出设备: ${deviceName}`);
   }
   await runCli("SwitchAudioSource", ["-s", deviceName, "-t", "output"], { timeoutMs: 10000 });
+  const mpvAudioDevice = await mpvDeviceForOutput(deviceName);
+  await setMpvAudioDevice(config, mpvAudioDevice).catch((error) => {
+    log("audio.output.mpv_set_failed", { outputDeviceName: deviceName, mpvAudioDevice, message: error.message });
+  });
   const saved = saveConfig({
     ...config,
     playback: {
@@ -324,8 +350,8 @@ async function setOutputDevice(name) {
       outputDeviceName: deviceName
     }
   }, config.__path);
-  log("audio.output.set", { outputDeviceName: deviceName });
-  return { status: "output_set", outputDeviceName: saved.playback.outputDeviceName };
+  log("audio.output.set", { outputDeviceName: deviceName, mpvAudioDevice });
+  return { status: "output_set", outputDeviceName: saved.playback.outputDeviceName, mpvAudioDevice };
 }
 
 const server = http.createServer(async (req, res) => {
@@ -380,3 +406,53 @@ server.listen(port, () => {
   }
   console.log(`music backend listening on http://127.0.0.1:${port}`);
 });
+
+function matchingPids(pattern) {
+  const result = spawnSync("pgrep", ["-f", pattern], { encoding: "utf8" });
+  if (result.status !== 0 || !result.stdout.trim()) return [];
+  const ownPids = new Set([String(process.pid), String(process.ppid)]);
+  return result.stdout.trim().split(/\s+/).filter((pid) => pid && !ownPids.has(pid));
+}
+
+function terminatePids(pids, signal) {
+  for (const pid of pids) spawnSync("kill", [`-${signal}`, pid], { stdio: "ignore" });
+}
+
+function terminatePlayerProcesses() {
+  const patterns = [
+    "vendor/@music163/ncm-cli/dist/index\\.js",
+    "ncm-cli/dist/index\\.js play",
+    "mpv .*\\.config/ncm-cli/mpv\\.sock"
+  ];
+  for (const pattern of patterns) terminatePids(matchingPids(pattern), "TERM");
+  for (const pattern of patterns) terminatePids(matchingPids(pattern), "KILL");
+}
+
+function cleanupRuntime() {
+  if (cleanupStarted) return;
+  cleanupStarted = true;
+  if (playbackTimer) clearTimeout(playbackTimer);
+  if (queueMonitor) clearInterval(queueMonitor);
+  try {
+    const config = loadConfig();
+    for (const args of [
+      ["stop", "--output", "json"],
+      ["queue", "clear", "--output", "json"],
+      ["stop", "--output", "json"]
+    ]) {
+      spawnSync(config.ncmCliBin, args, { stdio: "ignore", timeout: 10000 });
+    }
+  } catch (error) {
+    log("cleanup.failed", { message: error.message });
+  }
+  terminatePlayerProcesses();
+}
+
+function quitAfterCleanup() {
+  cleanupRuntime();
+  process.exit(0);
+}
+
+process.once("SIGINT", quitAfterCleanup);
+process.once("SIGTERM", quitAfterCleanup);
+process.once("exit", cleanupRuntime);

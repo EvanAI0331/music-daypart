@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
@@ -55,6 +56,65 @@ export async function getMpvPlaybackStatus(config = {}) {
     timePosition: typeof timePosition.data === "number" ? timePosition.data : null,
     active: idle.data === false && typeof pathValue.data === "string" && typeof timePosition.data === "number"
   };
+}
+
+export async function setMpvAudioDevice(config = {}, device) {
+  const socketPath = config.playback?.mpvSocketPath
+    || process.env.NCM_MPV_SOCKET
+    || path.join(os.homedir(), ".config", "ncm-cli", "mpv.sock");
+  return await mpvCommand(socketPath, ["set_property", "audio-device", device]);
+}
+
+export async function setMpvVolumePolicy(config = {}, requestedVolume = 50, options = {}) {
+  const volume = normalizeVolume(requestedVolume);
+  const socketPath = config.playback?.mpvSocketPath
+    || process.env.NCM_MPV_SOCKET
+    || path.join(os.homedir(), ".config", "ncm-cli", "mpv.sock");
+  if (!fs.existsSync(socketPath)) {
+    if (options.required) await waitForMpvSocket(socketPath, options.timeoutMs ?? 8000);
+  }
+  if (!fs.existsSync(socketPath)) {
+    if (options.required) throw new Error(`mpv IPC 不存在: ${socketPath}`);
+    return { applied: false, reason: "mpv_socket_missing", volume };
+  }
+  const applied = [];
+  for (const [property, value] of [
+    ["volume-max", 100],
+    ["replaygain", "track"],
+    ["replaygain-preamp", 0],
+    ["replaygain-clip", true],
+    ["volume", volume]
+  ]) {
+    try {
+      await mpvCommand(socketPath, ["set_property", property, value]);
+      applied.push(property);
+    } catch (error) {
+      if (property === "volume") throw error;
+    }
+  }
+  try {
+    await mpvCommand(socketPath, ["set_property", "ao-volume", volume]);
+    applied.push("ao-volume");
+  } catch {
+    // Some mpv audio outputs expose ao-volume as read-only; main volume is still clamped above.
+  }
+  return { applied: true, volume, properties: applied };
+}
+
+async function waitForMpvSocket(socketPath, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (fs.existsSync(socketPath)) return;
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+}
+
+function normalizeVolume(value) {
+  const volume = Number(value);
+  if (!Number.isInteger(volume) || volume < 0 || volume > 60) {
+    throw new Error(`音量必须是 0-60 的整数: ${value}`);
+  }
+  return volume;
 }
 
 async function mpvProperty(socketPath, property) {
@@ -205,6 +265,9 @@ export async function playSongQueue(config, songs) {
     "--output",
     "json"
   ], { timeoutMs: 45000 });
+  if (typeof config.playback?.volume === "number") {
+    await setMpvVolumePolicy(config, config.playback.volume, { required: true });
+  }
   const added = [];
   for (const song of rest) {
     await runCli(config.ncmCliBin, [
