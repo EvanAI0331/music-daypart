@@ -45,7 +45,7 @@ function ensureRuntime() {
     MUSIC_BACKEND_PORT: backendPort,
     MUSIC_FRONTEND_PORT: frontendPort,
     ...(fs.existsSync(packagedCli) ? { MUSIC_NCM_CLI_BIN: packagedCli } : {}),
-    ...(secrets.dashscopeApiKey ? { DASHSCOPE_API_KEY: secrets.dashscopeApiKey } : {})
+    ...(secrets.llmApiKey ? { MUSIC_LLM_API_KEY: secrets.llmApiKey } : {})
   };
   ensureNcmCliConfig(runtimeEnv, secrets);
   return runtimeEnv;

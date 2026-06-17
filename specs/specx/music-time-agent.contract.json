@@ -14,8 +14,8 @@
   ],
   "required_tools": [
     {
-      "tool_id": "qwen_openai_compatible_chat_completions",
-      "purpose": "Generate and revise the time-slot music search plan from slot intent, positive keywords, negative keywords, inferred listener profile, and search failure history through DashScope OpenAI-compatible API."
+      "tool_id": "openai_compatible_chat_completions",
+      "purpose": "Generate and revise the time-slot music search plan from slot intent, positive keywords, negative keywords, inferred listener profile, and search failure history through the configured OpenAI-compatible API."
     },
     {
       "tool_id": "ncm-cli",

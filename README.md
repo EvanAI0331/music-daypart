@@ -2,7 +2,7 @@
 
 LLM-driven NetEase Cloud Music player for time-of-day listening.
 
-Music Daypart uses a Qwen-compatible LLM to turn each time slot's intent and user preferences into NetEase Cloud Music search strategies. It searches through `ncm-cli`, queues all playable songs from the result batch, shuffles the queue, and refreshes automatically on the next hourly slot target or when the queue finishes before the next target.
+Music Daypart uses an OpenAI-compatible LLM to turn each time slot's intent and user preferences into NetEase Cloud Music search strategies. It searches through `ncm-cli`, queues all playable songs from the result batch, shuffles the queue, and refreshes automatically on the next hourly slot target or when the queue finishes before the next target.
 
 ## Features
 
@@ -20,7 +20,7 @@ Music Daypart uses a Qwen-compatible LLM to turn each time slot's intent and use
 - Node.js 18+
 - `mpv`
 - `ncm-cli`
-- DashScope/OpenAI-compatible API key for Qwen
+- OpenAI-compatible LLM API key
 - NetEase Cloud Music Open Platform credentials for `ncm-cli`
 
 Optional for audio output selection:
@@ -40,7 +40,9 @@ cp config/runtime-secrets.example.json config/runtime-secrets.json
 Fill `config/runtime-secrets.json` or export equivalent environment variables:
 
 ```bash
-export DASHSCOPE_API_KEY="..."
+export MUSIC_LLM_API_KEY="..."
+export MUSIC_LLM_BASE_URL="..."
+export MUSIC_LLM_MODEL="..."
 export MUSIC_NCM_APP_ID="..."
 export MUSIC_NCM_PRIVATE_KEY="..."
 export MUSIC_NCM_APP_SECRET="..."
@@ -100,7 +102,9 @@ If the queue finishes before the next scheduled target and the user did not manu
 The macOS packaging script expects local `ncm-cli` and `mpv` locations and writes secrets only into local ignored build artifacts.
 
 ```bash
-DASHSCOPE_API_KEY="..." \
+MUSIC_LLM_API_KEY="..." \
+MUSIC_LLM_BASE_URL="..." \
+MUSIC_LLM_MODEL="..." \
 MUSIC_NCM_APP_ID="..." \
 MUSIC_NCM_PRIVATE_KEY="..." \
 MUSIC_NCM_APP_SECRET="..." \

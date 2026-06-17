@@ -45,7 +45,7 @@ function runtimeEnv() {
     MUSIC_BACKEND_PORT: backendPort,
     MUSIC_FRONTEND_PORT: frontendPort,
     MUSIC_NCM_CLI_BIN: ncmCli,
-    ...(secrets.dashscopeApiKey ? { DASHSCOPE_API_KEY: secrets.dashscopeApiKey } : {})
+    ...(secrets.llmApiKey ? { MUSIC_LLM_API_KEY: secrets.llmApiKey } : {})
   };
 }
 

@@ -15,7 +15,7 @@ const env = {
   PATH: `${path.join(packageRoot, "bin")}${path.delimiter}${process.env.PATH || ""}`,
   MUSIC_WORKFLOW_CONFIG: configPath,
   MUSIC_NCM_CLI_BIN: ncmCli,
-  ...(secrets.dashscopeApiKey ? { DASHSCOPE_API_KEY: secrets.dashscopeApiKey } : {})
+  ...(secrets.llmApiKey ? { MUSIC_LLM_API_KEY: secrets.llmApiKey } : {})
 };
 
 const child = spawn(ncmCli, process.argv.slice(2), {

@@ -136,17 +136,17 @@ exec "$APP_BIN" "$APP_ROOT/vendor/@music163/ncm-cli/dist/index.js" "$@"
 }
 
 function writeRuntimeSecrets(target) {
-  const dashscopeApiKey = process.env.DASHSCOPE_API_KEY || "";
+  const llmApiKey = process.env.MUSIC_LLM_API_KEY || "";
   const appId = process.env.MUSIC_NCM_APP_ID || "";
   const privateKey = process.env.MUSIC_NCM_PRIVATE_KEY || "";
   const appSecret = process.env.MUSIC_NCM_APP_SECRET || "";
   const missing = [];
-  if (!dashscopeApiKey) missing.push("DASHSCOPE_API_KEY");
+  if (!llmApiKey) missing.push("MUSIC_LLM_API_KEY");
   if (!appId) missing.push("MUSIC_NCM_APP_ID");
   if (!privateKey) missing.push("MUSIC_NCM_PRIVATE_KEY");
   if (missing.length > 0) throw new Error(`Missing package secrets: ${missing.join(", ")}`);
   fs.writeFileSync(target, `${JSON.stringify({
-    dashscopeApiKey,
+    llmApiKey,
     netease: { appId, privateKey, ...(appSecret ? { appSecret } : {}) }
   }, null, 2)}\n`, "utf8");
 }

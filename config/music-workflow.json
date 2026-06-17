@@ -2,9 +2,9 @@
   "timezone": "Asia/Shanghai",
   "llm": {
     "provider": "openai-compatible",
-    "baseUrl": "https://coding.dashscope.aliyuncs.com/v1",
-    "apiKeyEnv": "DASHSCOPE_API_KEY",
-    "model": "qwen3-max-2026-01-23"
+    "baseUrl": "",
+    "apiKeyEnv": "MUSIC_LLM_API_KEY",
+    "model": ""
   },
   "ncmCliBin": "ncm-cli",
   "defaultLimit": 8,

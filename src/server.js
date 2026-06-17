@@ -88,9 +88,8 @@ async function health() {
     next: nextResult
       ? { slot: nextResult.slot.id, time: nextResult.hhmm, delayMs: nextResult.delayMs }
       : { slot: null, time: null, delayMs: null, error: nextError },
-    qwen: {
-      model: config.llm.model,
-      baseUrl: config.llm.baseUrl,
+    llm: {
+      configured: Boolean(config.llm.model && config.llm.baseUrl && process.env[config.llm.apiKeyEnv]),
       apiKeyEnv: config.llm.apiKeyEnv,
       apiKeyPresent: Boolean(process.env[config.llm.apiKeyEnv])
     },

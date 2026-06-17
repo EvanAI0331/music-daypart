@@ -4,12 +4,19 @@ import path from "node:path";
 const searchSkillPath = path.resolve("specs/music-time-agent.search.skill.md");
 
 export async function planSearch({ config, slot, local, previousAttempts = [] }) {
-  const apiKeyEnv = config.llm.apiKeyEnv || "OPENAI_API_KEY";
+  const apiKeyEnv = config.llm.apiKeyEnv || "MUSIC_LLM_API_KEY";
   const apiKey = process.env[apiKeyEnv];
   if (!apiKey) {
     throw new Error(`缺少 ${apiKeyEnv}，无法执行 LLM 驱动选歌。`);
   }
-  const baseUrl = (config.llm.baseUrl || "https://api.openai.com/v1").replace(/\/+$/, "");
+  const baseUrl = (config.llm.baseUrl || process.env.MUSIC_LLM_BASE_URL || "").replace(/\/+$/, "");
+  if (!baseUrl) {
+    throw new Error("缺少 MUSIC_LLM_BASE_URL 或 config.llm.baseUrl，无法执行 LLM 驱动选歌。");
+  }
+  const model = config.llm.model || process.env.MUSIC_LLM_MODEL || "";
+  if (!model) {
+    throw new Error("缺少 MUSIC_LLM_MODEL 或 config.llm.model，无法执行 LLM 驱动选歌。");
+  }
   const searchSkill = fs.readFileSync(searchSkillPath, "utf8");
 
   const response = await fetch(`${baseUrl}/chat/completions`, {
@@ -19,7 +26,7 @@ export async function planSearch({ config, slot, local, previousAttempts = [] })
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: config.llm.model,
+      model,
       messages: [
         {
           role: "system",
